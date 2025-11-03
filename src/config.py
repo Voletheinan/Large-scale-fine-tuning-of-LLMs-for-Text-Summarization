@@ -43,11 +43,9 @@ MAX_OUTPUT_LENGTH = 128 # Maximum output sequence length for summaries
 
 # --- Dataset Size Limits (for faster testing) ---
 # Set to None to use full dataset, or set a number to limit
-# Recommended values:
-#   - 500: Very fast testing (~5 min training)
-#   - 1000: Fast testing (~10 min training)
-#   - 5000: Medium testing (~30 min training)
-#   - 10000: Slower but better results (~1 hour training)
+MAX_TRAIN_SAMPLES = 5000  # Set to None to use full dataset
+MAX_VAL_SAMPLES = 1000    # Set to None to use full dataset
+MAX_TEST_SAMPLES = 1000   # Set to None to use full dataset
 #   - 20000: Good balance (~2-3 hours for 4 models)
 #   - 50000: Large dataset (~5-6 hours for 4 models)
 #   - None: Full dataset (~287k examples, ~3-5 hours training)
@@ -57,27 +55,38 @@ MAX_TEST_SAMPLES = 10000   # 10,000 mẫu test
 
 # --- Training Hyperparameters ---
 TRAINING_ARGS = {
-    "num_train_epochs": 1, # For demo purposes, can be increased
-    "per_device_train_batch_size": 2,
-    "per_device_eval_batch_size": 2,
-    "gradient_accumulation_steps": 4,
-    # Note: evaluation_strategy renamed to eval_strategy in transformers >= 4.21, but some versions may need evaluation_strategy
-    # Using eval_strategy for transformers 4.57.1
-    "eval_strategy": "epoch",
-    "save_strategy": "epoch",
+    "num_train_epochs": 1,          # Giảm epochs cho chạy nhanh
+    "per_device_train_batch_size": 32,  # Tăng batch size lên 32
+    "per_device_eval_batch_size": 32,
+    "gradient_accumulation_steps": 1,
+    "eval_strategy": "steps",
+    "eval_steps": 100,             # Giảm số lần evaluation
+    "save_strategy": "steps",
+    "save_steps": 100,             # Giảm số lần save checkpoint
     "logging_strategy": "steps",
-    "logging_steps": 10,
-    "learning_rate": 2e-4, # Common for PEFT methods
-    "fp16": True, # Use mixed precision training
+    "logging_steps": 20,               # Giảm số lần logging
+    "learning_rate": 2e-4,
+    "bf16": True,                    # Sử dụng bfloat16
+    "fp16": False,                   # Tắt fp16 khi dùng bf16
+    "optim": "adamw_torch_fused",    # Sử dụng fused optimizer
+    "max_grad_norm": 0.3,
+    "warmup_ratio": 0.03,
+    "lr_scheduler_type": "cosine",
+    "gradient_checkpointing": True,
+    "group_by_length": True,
+    "length_column_name": "length",   # Thêm column length để group hiệu quả hơn
+    "dataloader_num_workers": 4,      # Tăng số worker cho DataLoader
+    "dataloader_pin_memory": True,    # Pin memory để tăng tốc data transfer
+    "torch_compile": True,            # Dùng torch.compile() để tối ưu model
     "seed": 42,
-    "report_to": "none", # Disable reporting to external services
+    "report_to": "tensorboard",
     "remove_unused_columns": False,
 }
 
 # --- PEFT Specific Configurations ---
 LORA_CONFIG = {
-    "r": 8,
-    "lora_alpha": 16,
+    "r": 16,                     # Tăng rank vì có nhiều VRAM
+    "lora_alpha": 32,
     "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     "lora_dropout": 0.05,
     "bias": "none",
@@ -100,8 +109,8 @@ PROMPT_TUNING_CONFIG = {
 BNB_CONFIG = {
     "load_in_4bit": True,
     "bnb_4bit_quant_type": "nf4",
-    "bnb_4bit_compute_dtype": torch.bfloat16,
-    "bnb_4bit_use_double_quant": True,
+    "bnb_4bit_compute_dtype": torch.bfloat16,    # Sử dụng bfloat16 cho A100
+    "bnb_4bit_use_double_quant": True,           # Bật double quantization
 }
 
 # --- Evaluation Metrics ---

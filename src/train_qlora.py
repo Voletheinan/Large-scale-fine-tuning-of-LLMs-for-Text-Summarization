@@ -42,6 +42,35 @@ def get_gpu_memory_gb():
         return torch.cuda.max_memory_allocated() / 1024**3
     return 0.0
 
+class TrainingMonitor:
+    def __init__(self, total_steps):
+        self.total_steps = total_steps
+        self.start_time = None
+        self.step_times = []
+        
+    def start(self):
+        self.start_time = time.time()
+        
+    def update(self, current_step):
+        if len(self.step_times) == 0:
+            self.step_times.append(time.time() - self.start_time)
+        else:
+            self.step_times.append(time.time() - (self.start_time + sum(self.step_times)))
+        
+        # Tính thời gian trung bình mỗi step
+        avg_step_time = sum(self.step_times[-50:]) / min(len(self.step_times), 50)
+        
+        # Tính thời gian còn lại
+        steps_remaining = self.total_steps - current_step
+        time_remaining = steps_remaining * avg_step_time
+        
+        return {
+            'avg_step_time': avg_step_time,
+            'time_remaining': f"{int(time_remaining//3600):02d}:{int((time_remaining%3600)//60):02d}:{int(time_remaining%60):02d}",
+            'steps_per_second': 1 / avg_step_time,
+            'progress': f"{current_step}/{self.total_steps} ({(current_step/self.total_steps*100):.1f}%)"
+        }
+
 def get_trainable_parameters_info(model):
     """Extracts trainable parameters info from model."""
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -67,17 +96,46 @@ def main():
     # 1. Load tokenizer
     tokenizer = load_tokenizer()
 
-    # 2. Load processed data
+    # 2. Load and trim processed data
     print("Loading processed datasets...")
     train_dataset = load_processed_data("train")
     val_dataset = load_processed_data("validation")
+    
+    from src.config import MAX_TRAIN_SAMPLES, MAX_VAL_SAMPLES
+    if MAX_TRAIN_SAMPLES is not None:
+        train_dataset = train_dataset.select(range(min(MAX_TRAIN_SAMPLES, len(train_dataset))))
+    if MAX_VAL_SAMPLES is not None:
+        val_dataset = val_dataset.select(range(min(MAX_VAL_SAMPLES, len(val_dataset))))
+    
     print(f"Train examples: {len(train_dataset)}, Val examples: {len(val_dataset)}")
+    print(f"Using {len(train_dataset)} training samples and {len(val_dataset)} validation samples")
 
-    # 3. Tokenize datasets
-    tokenized_train_dataset, tokenized_val_dataset, _ = tokenize_datasets(
-        train_dataset, val_dataset, 
-        Dataset.from_dict({"article": [], "summary": []}), 
-        tokenizer
+    # 3. Tokenize datasets với length column để group_by_length
+    def tokenize_and_add_length(examples):
+        tokenized = tokenizer(
+            examples["article"],
+            examples["summary"],
+            truncation=True,
+            max_length=MAX_SEQ_LENGTH,
+            padding="max_length",
+            return_tensors="pt"
+        )
+        # Thêm length column để group_by_length hoạt động hiệu quả
+        tokenized["length"] = [len(x) for x in tokenized["input_ids"]]
+        return tokenized
+
+    # Tokenize với num_proc để xử lý song song
+    tokenized_train_dataset = train_dataset.map(
+        tokenize_and_add_length,
+        batched=True,
+        num_proc=4,  # Số process cho song song
+        remove_columns=train_dataset.column_names
+    )
+    tokenized_val_dataset = val_dataset.map(
+        tokenize_and_add_length,
+        batched=True,
+        num_proc=4,
+        remove_columns=val_dataset.column_names
     )
 
     # 4. Load base TinyLLaMA model with 4-bit quantization
@@ -111,6 +169,12 @@ def main():
     # For QLoRA, we still use LoraConfig, but the base model is already 4-bit quantized.
     lora_config = LoraConfig(**LORA_CONFIG)
     model = get_peft_model(model, lora_config)
+    
+    # Compile model để tăng tốc
+    if torch.__version__ >= "2.0.0" and torch.cuda.is_available():
+        print("Compiling model with torch.compile()...")
+        model = torch.compile(model, mode="reduce-overhead")
+    
     print("QLoRA model prepared successfully.")
     
     # Get trainable parameters info
@@ -130,13 +194,34 @@ def main():
         logging_dir=os.path.join(QLORA_FINETUNED_MODEL_DIR, "logs"),
     )
 
-    # 7. Initialize and run the Trainer
+    # 7. Initialize trainer with time monitoring
+    # Tính tổng số steps
+    total_steps = int(len(tokenized_train_dataset) / training_args.per_device_train_batch_size / 
+                     training_args.gradient_accumulation_steps * training_args.num_train_epochs)
+    
+    # Khởi tạo training monitor
+    monitor = TrainingMonitor(total_steps)
+    
+    # Định nghĩa callback để theo dõi thời gian
+    class TimeMonitorCallback(TrainerCallback):
+        def on_train_begin(self, args, state, control, **kwargs):
+            monitor.start()
+            print(f"\nTổng số steps: {total_steps}")
+            print(f"Ước tính thời gian training (dựa trên 1.73s/step): {str(timedelta(seconds=int(total_steps * 1.73)))}\n")
+        
+        def on_step_end(self, args, state, control, **kwargs):
+            stats = monitor.update(state.global_step)
+            print(f"\rTiến độ: {stats['progress']} | "
+                  f"Thời gian còn lại: {stats['time_remaining']} | "
+                  f"Tốc độ: {stats['steps_per_second']:.2f} steps/s", end="")
+
     trainer = Trainer(
         model=model,
         args=training_args,
         train_dataset=tokenized_train_dataset,
         eval_dataset=tokenized_val_dataset,
         tokenizer=tokenizer,
+        callbacks=[TimeMonitorCallback],
     )
 
     print("Starting QLoRA Fine-tuning...")
