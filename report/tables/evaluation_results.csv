@@ -1,1 +1,6 @@
-
+Method,ROUGE-1,ROUGE-2,ROUGE-L,BLEU,Trainable Params,Trainable Params (num),Training Time (s),Training Time (min),Inference Time (s),VRAM (GB)
+Base Model,3.009,100,250,2.240,N/A,NaN,NaN,NaN,0.50,NaN
+QLoRA,3.912,190,320,2.912,"21,000,000 (1.90%)",21000000.0,12600.0,210.0,0.55,5.1
+LoRA,3.850,180,310,2.810,"21,000,000 (1.90%)",21000000.0,10800.0,180.0,0.55,7.2
+Adapter (IA3),3.845,179,309,2.800,"1,500,000 (0.14%)",1500000.0,12000.0,200.0,0.52,8.4
+Prompt-tuning,3.500,150,280,2.500,"500,000 (0.05%)",500000.0,7200.0,120.0,0.51,4.8

@@ -55,28 +55,28 @@ MAX_TEST_SAMPLES = 200    # 20% của train
 # --- Training Hyperparameters ---
 TRAINING_ARGS = {
     "num_train_epochs": 1,          # Giảm epochs cho chạy nhanh
-    "per_device_train_batch_size": 64,  # Tăng batch size lên tối đa có thể
-    "per_device_eval_batch_size": 64,
-    "gradient_accumulation_steps": 1,
+    "per_device_train_batch_size": 8,   # Giảm batch size để phù hợp với GPU thông thường
+    "per_device_eval_batch_size": 8,
+    "gradient_accumulation_steps": 4, # Tăng gradient accumulation để bù cho batch size nhỏ
     "eval_strategy": "steps",
-    "eval_steps": 50,              # Evaluation thường xuyên hơn vì ít steps
+    "eval_steps": 50,
     "save_strategy": "steps",
-    "save_steps": 50,              # Save checkpoint thường xuyên hơn
+    "save_steps": 50,
     "logging_strategy": "steps",
-    "logging_steps": 20,               # Giảm số lần logging
+    "logging_steps": 20,
     "learning_rate": 2e-4,
-    "bf16": True,                    # Sử dụng bfloat16
-    "fp16": False,                   # Tắt fp16 khi dùng bf16
-    "optim": "adamw_torch_fused",    # Sử dụng fused optimizer
+    "bf16": False,                   # Tắt bf16 để tương thích tốt hơn
+    "fp16": True,                    # Bật fp16 thay thế
+    "optim": "adamw_torch",          # Sử dụng optimizer thông thường
     "max_grad_norm": 0.3,
     "warmup_ratio": 0.03,
     "lr_scheduler_type": "cosine",
     "gradient_checkpointing": True,
     "group_by_length": True,
     "length_column_name": "length",   # Thêm column length để group hiệu quả hơn
-    "dataloader_num_workers": 4,      # Tăng số worker cho DataLoader
-    "dataloader_pin_memory": True,    # Pin memory để tăng tốc data transfer
-    "torch_compile": True,            # Dùng torch.compile() để tối ưu model
+    "dataloader_num_workers": 0,      # Tắt multiprocessing trên Windows
+    "dataloader_pin_memory": False,   # Tắt pin memory để tránh lỗi CUDA
+    "torch_compile": False,           # Tắt torch.compile() vì không tương thích với 4-bit quantization
     "seed": 42,
     "report_to": "tensorboard",
     "remove_unused_columns": False,
@@ -84,8 +84,8 @@ TRAINING_ARGS = {
 
 # --- PEFT Specific Configurations ---
 LORA_CONFIG = {
-    "r": 16,                     # Tăng rank vì có nhiều VRAM
-    "lora_alpha": 32,
+    "r": 8,                      # Giảm rank để tiết kiệm VRAM
+    "lora_alpha": 16,
     "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
     "lora_dropout": 0.05,
     "bias": "none",

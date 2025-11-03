@@ -257,7 +257,7 @@ def main():
             MODEL_NAME,
             quantization_config=bnb_config_eval,
             device_map="auto",
-            torch_dtype=torch.bfloat16
+            dtype=torch.bfloat16
         )
     
     # Function to load PEFT model
