@@ -43,26 +43,25 @@ MAX_OUTPUT_LENGTH = 128 # Maximum output sequence length for summaries
 
 # --- Dataset Size Limits (for faster testing) ---
 # Set to None to use full dataset, or set a number to limit
-MAX_TRAIN_SAMPLES = 5000  # Set to None to use full dataset
-MAX_VAL_SAMPLES = 1000    # Set to None to use full dataset
-MAX_TEST_SAMPLES = 1000   # Set to None to use full dataset
+# Giảm kích thước dataset để test nhanh
+MAX_TRAIN_SAMPLES = 1000  # Giảm xuống 1000 mẫu để test nhanh
+MAX_VAL_SAMPLES = 200     # 20% của train
+MAX_TEST_SAMPLES = 200    # 20% của train
+# Examples for reference (uncomment or change above to use):
 #   - 20000: Good balance (~2-3 hours for 4 models)
 #   - 50000: Large dataset (~5-6 hours for 4 models)
 #   - None: Full dataset (~287k examples, ~3-5 hours training)
-MAX_TRAIN_SAMPLES = 50000  # 50,000 mẫu train
-MAX_VAL_SAMPLES = 10000    # 10,000 mẫu val (20% của train)
-MAX_TEST_SAMPLES = 10000   # 10,000 mẫu test
 
 # --- Training Hyperparameters ---
 TRAINING_ARGS = {
     "num_train_epochs": 1,          # Giảm epochs cho chạy nhanh
-    "per_device_train_batch_size": 32,  # Tăng batch size lên 32
-    "per_device_eval_batch_size": 32,
+    "per_device_train_batch_size": 64,  # Tăng batch size lên tối đa có thể
+    "per_device_eval_batch_size": 64,
     "gradient_accumulation_steps": 1,
     "eval_strategy": "steps",
-    "eval_steps": 100,             # Giảm số lần evaluation
+    "eval_steps": 50,              # Evaluation thường xuyên hơn vì ít steps
     "save_strategy": "steps",
-    "save_steps": 100,             # Giảm số lần save checkpoint
+    "save_steps": 50,              # Save checkpoint thường xuyên hơn
     "logging_strategy": "steps",
     "logging_steps": 20,               # Giảm số lần logging
     "learning_rate": 2e-4,
