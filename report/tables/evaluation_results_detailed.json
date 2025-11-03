@@ -1,0 +1,5 @@
+{
+  "Base Model": {
+    "error": "`attention_mask` passed to `generate` must be 2D."
+  }
+}
