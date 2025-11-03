@@ -13,8 +13,15 @@ import os
 import sys
 import json
 import time
+from datetime import timedelta
 import torch
-from transformers import AutoModelForCausalLM, TrainingArguments, Trainer, BitsAndBytesConfig
+from transformers import (
+    AutoModelForCausalLM,
+    TrainingArguments,
+    Trainer,
+    BitsAndBytesConfig,
+    TrainerCallback
+)
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from datasets import Dataset
 
@@ -205,16 +212,22 @@ def main():
     
     # Định nghĩa callback để theo dõi thời gian
     class TimeMonitorCallback(TrainerCallback):
+        def __init__(self, monitor):
+            self.monitor = monitor
+
         def on_train_begin(self, args, state, control, **kwargs):
-            monitor.start()
+            self.monitor.start()
             print(f"\nTổng số steps: {total_steps}")
             print(f"Ước tính thời gian training (dựa trên 1.73s/step): {str(timedelta(seconds=int(total_steps * 1.73)))}\n")
         
         def on_step_end(self, args, state, control, **kwargs):
-            stats = monitor.update(state.global_step)
+            stats = self.monitor.update(state.global_step)
             print(f"\rTiến độ: {stats['progress']} | "
                   f"Thời gian còn lại: {stats['time_remaining']} | "
                   f"Tốc độ: {stats['steps_per_second']:.2f} steps/s", end="")
+
+    # Khởi tạo callback với monitor
+    time_monitor_callback = TimeMonitorCallback(monitor)
 
     trainer = Trainer(
         model=model,
@@ -222,7 +235,7 @@ def main():
         train_dataset=tokenized_train_dataset,
         eval_dataset=tokenized_val_dataset,
         tokenizer=tokenizer,
-        callbacks=[TimeMonitorCallback],
+        callbacks=[time_monitor_callback],  # Truyền instance của callback
     )
 
     print("Starting QLoRA Fine-tuning...")
