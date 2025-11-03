@@ -25,6 +25,7 @@ if BASE_DIR not in sys.path:
 
 from src.config import (
     MODEL_NAME,
+    MAX_SEQ_LENGTH,
     TINYLLAMA_BASE_MODEL_DIR,
     QLORA_FINETUNED_MODEL_DIR,
     PROCESSED_DATA_DIR,
