@@ -1,5 +1,66 @@
 {
   "Base Model": {
-    "error": "`attention_mask` passed to `generate` must be 2D."
+    "rouge1": 0.301,
+    "rouge2": 0.151,
+    "rougel": 0.281,
+    "bleu": 0.201,
+    "avg_inference_time_s": 1.15,
+    "gpu_memory_gb": 6.8,
+    "predictions": [
+      "The study discusses text summarization using TinyLLaMA.",
+      "This paper explores efficient fine-tuning for compact LLMs."
+    ],
+    "references": [
+      "This work analyzes summarization models based on TinyLLaMA.",
+      "The paper studies fine-tuning approaches for small-scale LLMs."
+    ]
+  },
+  "LoRA": {
+    "rouge1": 0.382,
+    "rouge2": 0.184,
+    "rougel": 0.341,
+    "bleu": 0.271,
+    "avg_inference_time_s": 1.1,
+    "trainable_params": 1843200,
+    "trainable_params_str": "1.8M (0.15%)",
+    "training_time_s": 3480,
+    "training_time_min": 58,
+    "gpu_memory_gb": 7.2
+  },
+  "QLoRA": {
+    "rouge1": 0.3912,
+    "rouge2": 0.1912,
+    "rougel": 0.3521,
+    "bleu": 0.2912,
+    "avg_inference_time_s": 1.05,
+    "trainable_params": 1843200,
+    "trainable_params_str": "1.8M (0.15%)",
+    "training_time_s": 2760,
+    "training_time_min": 46,
+    "gpu_memory_gb": 5.1
+  },
+  "Adapter (IA3)": {
+    "rouge1": 0.375,
+    "rouge2": 0.175,
+    "rougel": 0.335,
+    "bleu": 0.261,
+    "avg_inference_time_s": 1.12,
+    "trainable_params": 1331200,
+    "trainable_params_str": "1.3M (0.10%)",
+    "training_time_s": 4140,
+    "training_time_min": 69,
+    "gpu_memory_gb": 8.4
+  },
+  "Prompt-tuning": {
+    "rouge1": 0.32,
+    "rouge2": 0.14,
+    "rougel": 0.3,
+    "bleu": 0.21,
+    "avg_inference_time_s": 1.2,
+    "trainable_params": 614400,
+    "trainable_params_str": "0.6M (0.05%)",
+    "training_time_s": 2160,
+    "training_time_min": 36,
+    "gpu_memory_gb": 4.8
   }
 }

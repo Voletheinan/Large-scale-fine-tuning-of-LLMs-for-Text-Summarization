@@ -43,14 +43,11 @@ MAX_OUTPUT_LENGTH = 128 # Maximum output sequence length for summaries
 
 # --- Dataset Size Limits (for faster testing) ---
 # Set to None to use full dataset, or set a number to limit
-# Giảm kích thước dataset để test nhanh
-MAX_TRAIN_SAMPLES = 1000  # Giảm xuống 1000 mẫu để test nhanh
+# Sửa thành 50000 mẫu
+MAX_TRAIN_SAMPLES = 50000  # Sửa thành 50000 mẫu
 MAX_VAL_SAMPLES = 200     # 20% của train
 MAX_TEST_SAMPLES = 200    # 20% của train
-# Examples for reference (uncomment or change above to use):
-#   - 20000: Good balance (~2-3 hours for 4 models)
-#   - 50000: Large dataset (~5-6 hours for 4 models)
-#   - None: Full dataset (~287k examples, ~3-5 hours training)
+
 
 # --- Training Hyperparameters ---
 TRAINING_ARGS = {
